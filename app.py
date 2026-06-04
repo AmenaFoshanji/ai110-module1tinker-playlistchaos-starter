@@ -210,10 +210,12 @@ def profile_sidebar():
             value=int(profile.get("chill_max_energy", 3)),
         )
 
+    genres = ["rock", "lofi", "pop", "jazz", "electronic", "ambient", "other"]
+    favorite_genre = profile.get("favorite_genre", "rock")
     profile["favorite_genre"] = st.sidebar.selectbox(
         "Favorite genre",
-        options=["rock", "lofi", "pop", "jazz", "electronic", "ambient", "other"],
-        index=0,
+        options=genres,
+        index=genres.index(favorite_genre) if favorite_genre in genres else 0,
     )
 
     profile["include_mixed"] = st.sidebar.checkbox(
@@ -276,11 +278,31 @@ def render_playlist(label, songs):
         st.write("No songs in this playlist.")
         return
 
-    query = st.text_input(f"Search {label} playlist by artist", key=f"search_{label}")
-    filtered = search_songs(songs, query, field="artist")
+    # Search controls
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        query = st.text_input(f"Search {label} playlist", key=f"search_query_{label}", placeholder="Enter search term...")
+    with col2:
+        search_field = st.selectbox(
+            "Search by",
+            options=["Artist", "Title", "Genre"],
+            key=f"search_field_{label}",
+            label_visibility="collapsed"
+        )
+
+    # Map display name to field name
+    field_map = {
+        "Artist": "artist",
+        "Title": "title",
+        "Genre": "genre",
+    }
+    search_field_name = field_map.get(search_field, "artist")
+
+    # Apply search filter
+    filtered = search_songs(songs, query, field=search_field_name)
 
     if not filtered:
-        st.write("No matching songs.")
+        st.write(f"No songs found matching '{query}' by {search_field.lower()}.")
         return
 
     for song in filtered:
